@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Plus, LayoutGrid, Settings2, Info } from 'lucide-react';
+import { Settings, Plus, LayoutGrid, Settings2 } from 'lucide-react';
 import { Category, Link, SearchEngine, AppSettings } from './types';
 import { getDefaultCategories, DEFAULT_SEARCH_ENGINES } from './constants';
 import { TRANSLATIONS } from './translations';

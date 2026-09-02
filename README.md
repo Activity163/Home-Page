@@ -56,7 +56,7 @@ Astralis 是一个优雅的极简主义浏览器起始页，专注于提供简�
 
 4. **访问应用**
    
-   在浏览器中打开 `http://localhost:5173`
+   在浏览器中打开 `http://localhost:3000`
 
 #### 构建生产版本
 
@@ -70,36 +70,34 @@ npm run build
 
 #### 修改默认网站
 
-编辑 `constants.ts` 文件中的 `DEFAULT_CATEGORIES` 来自定义默认的网站分类和链接：
+编辑 `constants.ts` 文件中的 `getDefaultCategories` 函数来自定义默认的网站分类和链接：
 
 ```typescript
-export const DEFAULT_CATEGORIES: Category[] = [
-  {
-    id: '1',
-    title: { zh: '常用', en: 'Frequently Used' },
-    websites: [
-      {
-        id: '1',
-        title: { zh: '示例网站', en: 'Example Site' },
-        url: 'https://example.com',
-        icon: '🌐'
-      }
-    ]
-  }
-];
+export const getDefaultCategories = (language: Language = 'en'): Category[] => {
+  return [
+    {
+      id: '1',
+      title: '常用',
+      links: [
+        { id: '1', title: '示例网站', url: 'https://example.com' }
+      ],
+    },
+  ];
+};
 ```
 
 #### 修改搜索引擎
 
-在 `constants.ts` 中修改 `SEARCH_ENGINES` 来添加或修改搜索引擎。
+在 `constants.ts` 中修改 `DEFAULT_SEARCH_ENGINES` 来添加或修改搜索引擎。
 
 ### 📦 技术栈
 
-- **React** - UI 框架
+- **React 19** - UI 框架
 - **TypeScript** - 类型安全
 - **Vite** - 构建工具
-- **Tailwind CSS** - 样式框架
+- **Tailwind CSS** - 样式框架（通过 CDN 引入）
 - **Lucide React** - 图标库
+- **lunar-typescript** - 农历日期计算
 
 ### 📄 许可证
 
@@ -151,7 +149,7 @@ Astralis is an elegant minimalist browser start page focused on providing a clea
 
 4. **Open in browser**
    
-   Visit `http://localhost:5173`
+   Visit `http://localhost:3000`
 
 #### Build for Production
 
@@ -165,36 +163,34 @@ Built files will be in the `dist` directory.
 
 #### Modify Default Websites
 
-Edit `DEFAULT_CATEGORIES` in `constants.ts` to customize default website categories and links:
+Edit the `getDefaultCategories` function in `constants.ts` to customize default website categories and links:
 
 ```typescript
-export const DEFAULT_CATEGORIES: Category[] = [
-  {
-    id: '1',
-    title: { zh: '常用', en: 'Frequently Used' },
-    websites: [
-      {
-        id: '1',
-        title: { zh: '示例网站', en: 'Example Site' },
-        url: 'https://example.com',
-        icon: '🌐'
-      }
-    ]
-  }
-];
+export const getDefaultCategories = (language: Language = 'en'): Category[] => {
+  return [
+    {
+      id: '1',
+      title: 'Frequently Used',
+      links: [
+        { id: '1', title: 'Example Site', url: 'https://example.com' }
+      ],
+    },
+  ];
+};
 ```
 
 #### Modify Search Engines
 
-Edit `SEARCH_ENGINES` in `constants.ts` to add or modify search engines.
+Edit `DEFAULT_SEARCH_ENGINES` in `constants.ts` to add or modify search engines.
 
 ### 📦 Tech Stack
 
-- **React** - UI Framework
+- **React 19** - UI Framework
 - **TypeScript** - Type Safety
 - **Vite** - Build Tool
-- **Tailwind CSS** - Styling
+- **Tailwind CSS** - Styling (via CDN)
 - **Lucide React** - Icons
+- **lunar-typescript** - Lunar calendar calculation
 
 ### 📄 License
 

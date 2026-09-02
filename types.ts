@@ -20,8 +20,6 @@ export interface SearchEngine {
   isAI?: boolean;
 }
 
-export type SearchMode = 'web' | 'ai';
-
 export type Language = 'en' | 'zh';
 
 export type Theme = 'system' | 'light' | 'dark';
