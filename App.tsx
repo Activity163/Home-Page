@@ -15,6 +15,19 @@ const STORAGE_KEY_DATA = 'astralis_data';
 const STORAGE_KEY_ENGINES = 'astralis_engines';
 const STORAGE_KEY_SETTINGS = 'astralis_settings';
 
+// Safe localStorage read: corrupted JSON falls back to the default value
+const safeParse = <T,>(key: string, fallback: T, validate?: (value: unknown) => boolean): T => {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) return fallback;
+    const parsed = JSON.parse(saved);
+    if (validate && !validate(parsed)) return fallback;
+    return parsed as T;
+  } catch {
+    return fallback;
+  }
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
   theme: 'system',
@@ -36,32 +49,32 @@ const App: React.FC = () => {
   // --- State ---
 
   // Settings
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_SETTINGS);
-    return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
-  });
+  const [settings, setSettings] = useState<AppSettings>(() => ({
+    ...DEFAULT_SETTINGS,
+    ...safeParse<Partial<AppSettings>>(
+      STORAGE_KEY_SETTINGS,
+      {},
+      v => typeof v === 'object' && v !== null && !Array.isArray(v)
+    ),
+  }));
 
-  const t = TRANSLATIONS[settings.language];
+  const t = TRANSLATIONS[settings.language] ?? TRANSLATIONS.en;
 
   // Categories
   const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_DATA);
+    const saved = safeParse<Category[] | null>(STORAGE_KEY_DATA, null, Array.isArray);
     if (saved) {
-      return JSON.parse(saved);
+      return saved;
     }
     // Get default categories based on the saved language or browser language
-    const savedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
-    const language = savedSettings
-      ? JSON.parse(savedSettings).language
-      : (navigator.language.startsWith('zh') ? 'zh' : 'en');
+    const language = settings.language ?? (navigator.language.startsWith('zh') ? 'zh' : 'en');
     return getDefaultCategories(language);
   });
 
   // Search Engines
-  const [searchEngines, setSearchEngines] = useState<SearchEngine[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY_ENGINES);
-    return saved ? JSON.parse(saved) : DEFAULT_SEARCH_ENGINES;
-  });
+  const [searchEngines, setSearchEngines] = useState<SearchEngine[]>(() =>
+    safeParse<SearchEngine[]>(STORAGE_KEY_ENGINES, DEFAULT_SEARCH_ENGINES, Array.isArray)
+  );
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -110,8 +123,12 @@ const App: React.FC = () => {
     }
   }, [settings.customTitle, settings.customIcon]);
 
-  // Auto-translate default category titles when language changes
+  // Auto-translate default category titles when language changes (skip on first mount)
+  const prevLanguage = useRef(settings.language);
   useEffect(() => {
+    if (prevLanguage.current === settings.language) return;
+    prevLanguage.current = settings.language;
+
     const categoryTitleMap: Record<string, Record<string, string>> = {
       'Daily': { 'zh': '日常', 'en': 'Daily' },
       '日常': { 'zh': '日常', 'en': 'Daily' },
@@ -190,9 +207,15 @@ const App: React.FC = () => {
     reader.onload = (e) => {
       try {
         const json = JSON.parse(e.target?.result as string);
-        if (json.categories) setCategories(json.categories);
-        if (json.searchEngines) setSearchEngines(json.searchEngines);
-        if (json.settings) setSettings({ ...DEFAULT_SETTINGS, ...json.settings });
+        const isValidObject = (v: unknown) => Array.isArray(v) || (typeof v === 'object' && v !== null);
+        if (!json || typeof json !== 'object' || (!isValidObject(json.categories) && !isValidObject(json.searchEngines) && !isValidObject(json.settings))) {
+          throw new Error('No recognizable data');
+        }
+        if (Array.isArray(json.categories)) setCategories(json.categories);
+        if (Array.isArray(json.searchEngines)) setSearchEngines(json.searchEngines);
+        if (json.settings && typeof json.settings === 'object' && !Array.isArray(json.settings)) {
+          setSettings({ ...DEFAULT_SETTINGS, ...json.settings });
+        }
         alert(t.done);
         setIsSettingsOpen(false);
       } catch (error) {
@@ -234,7 +257,7 @@ const App: React.FC = () => {
       setCategories(newCategories);
     }
 
-    // Logic for reordering links (within same category for simplicity in this implementation)
+    // Logic for reordering links within the same category
     if (dragged.type === 'link' && type === 'link' && dragged.parentId === targetParentId) {
       const catIndex = categories.findIndex(c => c.id === dragged.parentId);
       if (catIndex === -1) return;
@@ -250,6 +273,27 @@ const App: React.FC = () => {
 
       const newCategories = [...categories];
       newCategories[catIndex] = { ...newCategories[catIndex], links: newLinks };
+      setCategories(newCategories);
+    }
+
+    // Logic for moving a link across categories (drop before the target link)
+    if (dragged.type === 'link' && type === 'link' && dragged.parentId !== targetParentId && dragged.parentId && targetParentId) {
+      const srcCatIndex = categories.findIndex(c => c.id === dragged.parentId);
+      const dstCatIndex = categories.findIndex(c => c.id === targetParentId);
+      if (srcCatIndex === -1 || dstCatIndex === -1) return;
+
+      const srcLinks = [...categories[srcCatIndex].links];
+      const movedIndex = srcLinks.findIndex(l => l.id === dragged.id);
+      if (movedIndex === -1) return;
+      const [moved] = srcLinks.splice(movedIndex, 1);
+
+      const dstLinks = [...categories[dstCatIndex].links];
+      const targetIndex = dstLinks.findIndex(l => l.id === targetId);
+      dstLinks.splice(targetIndex === -1 ? dstLinks.length : targetIndex, 0, moved);
+
+      const newCategories = [...categories];
+      newCategories[srcCatIndex] = { ...newCategories[srcCatIndex], links: srcLinks };
+      newCategories[dstCatIndex] = { ...newCategories[dstCatIndex], links: dstLinks };
       setCategories(newCategories);
     }
 
@@ -394,7 +438,8 @@ const App: React.FC = () => {
           <div
             className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
             style={{
-              backgroundImage: `url(${settings.customWallpaper})`,
+              // Strip characters that could break out of the CSS url() context
+              backgroundImage: `url("${settings.customWallpaper.replace(/["'()\\]/g, '')}")`,
               filter: settings.wallpaperBlur ? 'blur(20px)' : 'none',
               transform: settings.wallpaperBlur ? 'scale(1.1)' : 'scale(1)'
             }}
@@ -456,7 +501,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-100">
+        <div className="w-full anim-fade-up anim-delay-100">
           <SearchBar
             searchEngines={searchEngines}
             isEditing={isEditing}
@@ -475,7 +520,7 @@ const App: React.FC = () => {
                 {t.dragHint}
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 anim-fade-up-lg anim-delay-200">
               {categories.map(category => (
                 <CategoryGroup
                   key={category.id}
@@ -625,7 +670,7 @@ const App: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-1">{t.icon}</label>
-            <p className="text-xs text-gray-500 dark:text-zinc-500 mb-2" dangerouslySetInnerHTML={{ __html: t.iconHelp }}></p>
+            <p className="text-xs text-gray-500 dark:text-zinc-500 mb-2">{t.iconHelp}</p>
             <input
               type="text"
               value={newEngineIcon}

@@ -22,18 +22,18 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   t
 }) => {
   const [query, setQuery] = useState('');
-  const [selectedEngine, setSelectedEngine] = useState<SearchEngine>(searchEngines[0]);
+  const [selectedEngine, setSelectedEngine] = useState<SearchEngine | null>(searchEngines[0] ?? null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Sync selected engine if searchEngines changes
   useEffect(() => {
-    if (!searchEngines.find(e => e.id === selectedEngine.id)) {
+    if (!searchEngines.find(e => e.id === selectedEngine?.id)) {
       setSelectedEngine(searchEngines[0] || null);
     }
-  }, [searchEngines, selectedEngine.id]);
+  }, [searchEngines, selectedEngine?.id]);
 
   // Click outside handler
   useEffect(() => {
@@ -46,10 +46,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const performSearch = async (text: string) => {
+  const performSearch = (text: string) => {
     if (!text.trim()) return;
 
-    const url = selectedEngine.searchUrl.replace('%s', encodeURIComponent(text));
+    const url = selectedEngine?.searchUrl.replace('%s', encodeURIComponent(text));
+    if (!url) return;
     if (openInNewTab) {
       window.open(url, '_blank');
     } else {
@@ -75,12 +76,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       return <img src={icon} alt="" className={`object-contain ${className}`} />;
     }
     if (isSvg) {
-      return (
-        <div 
-          className={`${className} [&>svg]:w-full [&>svg]:h-full flex items-center justify-center`}
-          dangerouslySetInnerHTML={{ __html: icon }}
-        />
-      );
+      // Render as <img> via data URL: scripts inside user-supplied SVG cannot execute
+      const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(icon)}`;
+      return <img src={svgDataUrl} alt="" className={`object-contain ${className}`} />;
     }
     return <span className={className}>{icon}</span>;
   };
@@ -111,7 +109,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-3 w-64 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 overflow-hidden py-2 animate-in fade-in zoom-in-95 duration-200 origin-top-left z-30">
+              <div className="absolute top-full left-0 mt-3 w-64 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 overflow-hidden py-2 anim-zoom origin-top-left z-30">
                 <div className="max-h-80 overflow-y-auto custom-scrollbar">
                   {searchEngines.map((engine) => (
                     <div 

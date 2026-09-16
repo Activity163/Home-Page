@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TranslationType } from '../translations';
 import { Language } from '../types';
 import { Solar, Lunar } from 'lunar-typescript';
@@ -65,10 +65,14 @@ export const Clock: React.FC<ClockProps> = ({ name, t, hasCustomWallpaper, langu
     ? "text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
     : "text-gray-500 dark:text-zinc-400";
 
-  const { westernDate, lunarDate } = formatDate(time);
+  const { westernDate, lunarDate } = useMemo(
+    () => formatDate(time),
+    // Recalculate only when the day or language changes, not every second
+    [time.getFullYear(), time.getMonth(), time.getDate(), language]
+  );
 
   return (
-    <div className="flex flex-col items-center mb-8 animate-in fade-in slide-in-from-top-4 duration-1000 select-none">
+    <div className="flex flex-col items-center mb-8 anim-fade-down select-none">
       <h2 className={`text-7xl md:text-8xl font-[200] tracking-tighter mb-2 tabular-nums transition-colors duration-500 ${titleClass}`}>
         {formatTime(time)}
       </h2>
