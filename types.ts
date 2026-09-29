@@ -17,7 +17,6 @@ export interface SearchEngine {
   name: string;
   searchUrl: string; // URL with %s for query
   icon: string; // Emoji or generic name for icon mapping
-  isAI?: boolean;
 }
 
 export type Language = 'en' | 'zh';
@@ -41,4 +40,5 @@ export interface AppSettings {
   showSeconds: boolean;
   customTitle: string;
   customIcon: string;
+  defaultSearchEngineId: string;
 }

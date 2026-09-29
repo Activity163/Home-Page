@@ -1,11 +1,14 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { SearchEngine } from '../types';
 import { TranslationType } from '../translations';
+import { EngineIcon } from './EngineIcon';
 
 interface SearchBarProps {
   searchEngines: SearchEngine[];
+  defaultEngineId: string;
+  onEngineChange: (id: string) => void;
   isEditing: boolean;
   onAddEngineClick: () => void;
   onDeleteEngine: (id: string) => void;
@@ -15,6 +18,8 @@ interface SearchBarProps {
 
 export const SearchBar: React.FC<SearchBarProps> = ({ 
   searchEngines,
+  defaultEngineId,
+  onEngineChange,
   isEditing,
   onAddEngineClick,
   onDeleteEngine,
@@ -22,18 +27,15 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   t
 }) => {
   const [query, setQuery] = useState('');
-  const [selectedEngine, setSelectedEngine] = useState<SearchEngine | null>(searchEngines[0] ?? null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Sync selected engine if searchEngines changes
-  useEffect(() => {
-    if (!searchEngines.find(e => e.id === selectedEngine?.id)) {
-      setSelectedEngine(searchEngines[0] || null);
-    }
-  }, [searchEngines, selectedEngine?.id]);
+  // The default engine from settings wins; otherwise fall back to the first engine
+  const selectedEngine = useMemo(
+    () => searchEngines.find(e => e.id === defaultEngineId) ?? searchEngines[0] ?? null,
+    [searchEngines, defaultEngineId]
+  );
 
   // Click outside handler
   useEffect(() => {
@@ -63,24 +65,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     performSearch(query);
   };
 
+  // Picking an engine here also makes it the default in settings
   const handleEngineSelect = (engine: SearchEngine) => {
-    setSelectedEngine(engine);
+    onEngineChange(engine.id);
     setIsDropdownOpen(false);
-  };
-
-  const renderIcon = (icon: string, className: string = "") => {
-    const isUrl = icon.startsWith('http') || icon.startsWith('data:');
-    const isSvg = icon.trim().startsWith('<svg');
-
-    if (isUrl) {
-      return <img src={icon} alt="" className={`object-contain ${className}`} />;
-    }
-    if (isSvg) {
-      // Render as <img> via data URL: scripts inside user-supplied SVG cannot execute
-      const svgDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(icon)}`;
-      return <img src={svgDataUrl} alt="" className={`object-contain ${className}`} />;
-    }
-    return <span className={className}>{icon}</span>;
   };
 
   if (!selectedEngine) return null;
@@ -88,7 +76,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   const placeholderText = t.searchPlaceholder.replace('%s', selectedEngine.name);
 
   return (
-    <div className="w-full max-w-3xl mx-auto relative z-20" ref={searchContainerRef}>
+    <div className="w-full max-w-3xl mx-auto relative z-20">
       <form onSubmit={handleSearch} className="relative group">
         <div className={`
           flex items-center bg-white dark:bg-zinc-900 shadow-lg dark:shadow-black/40 border border-transparent dark:border-zinc-800
@@ -103,7 +91,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               className="flex items-center gap-1 sm:gap-2 pl-3 sm:pl-5 pr-2 sm:pr-3 py-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors border-r border-gray-100 dark:border-zinc-800 justify-center"
             >
               <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6">
-                {renderIcon(selectedEngine.icon, "w-5 h-5 sm:w-6 sm:h-6 text-lg sm:text-xl")}
+                <EngineIcon icon={selectedEngine.icon} className="w-5 h-5 sm:w-6 sm:h-6 text-lg sm:text-xl" />
               </div>
               <ChevronDown size={14} className={`hidden sm:block text-gray-400 dark:text-zinc-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -121,7 +109,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                     >
                       <div className="flex items-center gap-3 overflow-hidden">
                         <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center text-gray-700 dark:text-gray-200">
-                          {renderIcon(engine.icon, "w-5 h-5 text-lg")}
+                          <EngineIcon icon={engine.icon} className="w-5 h-5 text-lg" />
                         </div>
                         <span className={`text-sm truncate ${selectedEngine.id === engine.id ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-zinc-300'}`}>
                           {engine.name}

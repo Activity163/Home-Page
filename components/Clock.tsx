@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TranslationType } from '../translations';
 import { Language } from '../types';
-import { Solar, Lunar } from 'lunar-typescript';
+import { Solar } from 'lunar-typescript';
 
 interface ClockProps {
   name?: string;

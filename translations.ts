@@ -33,7 +33,6 @@ export const TRANSLATIONS = {
     selectLanguage: "Language",
     general: "General",
     appearance: "Appearance",
-    theme: "Theme",
     light: "Light",
     dark: "Dark",
     system: "System",
@@ -81,6 +80,8 @@ export const TRANSLATIONS = {
     customIcon: "Website Icon",
     customTitlePlaceholder: "Leave blank to use default",
     customIconPlaceholder: "Leave blank to use default",
+    defaultSearchEngine: "Default Search Engine",
+    defaultSearchEngineHelp: "Used by the search bar on load. Picking an engine from the search bar dropdown also updates this.",
   },
   zh: {
     searchPlaceholder: "在 %s 中搜索...",
@@ -113,7 +114,6 @@ export const TRANSLATIONS = {
     selectLanguage: "语言",
     general: "常规",
     appearance: "外观",
-    theme: "主题",
     light: "浅色",
     dark: "深色",
     system: "跟随系统",
@@ -161,6 +161,8 @@ export const TRANSLATIONS = {
     customIcon: "网站图标",
     customTitlePlaceholder: "留空则使用默认",
     customIconPlaceholder: "留空则使用默认",
+    defaultSearchEngine: "默认搜索引擎",
+    defaultSearchEngineHelp: "打开页面时搜索栏默认使用该引擎。在搜索栏下拉菜单中选择引擎也会同步修改此项。",
   }
 };
 

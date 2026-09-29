@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Globe, ExternalLink, GripHorizontal, Pencil } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, GripHorizontal, Pencil } from 'lucide-react';
 import { Category, Link, LayoutMode } from '../types';
 import { TranslationType } from '../translations';
 

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Settings, Plus, LayoutGrid, Settings2 } from 'lucide-react';
+import { Settings, Plus, LayoutGrid, Settings2, Info } from 'lucide-react';
 import { Category, Link, SearchEngine, AppSettings } from './types';
 import { getDefaultCategories, DEFAULT_SEARCH_ENGINES } from './constants';
 import { TRANSLATIONS } from './translations';
@@ -43,6 +43,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   showSeconds: false,
   customTitle: '',
   customIcon: '',
+  defaultSearchEngineId: '',
 };
 
 const App: React.FC = () => {
@@ -229,10 +230,6 @@ const App: React.FC = () => {
   const onDragStart = (e: React.DragEvent, type: 'category' | 'link', id: string, parentId?: string) => {
     dragItem.current = { type, id, parentId };
     e.dataTransfer.effectAllowed = "move";
-    // Slight delay to prevent ghost image issues
-    setTimeout(() => {
-      // Optional: add visual class to dragged item
-    }, 0);
   };
 
   const onDragOver = (e: React.DragEvent, type: 'category' | 'link', id: string) => {
@@ -412,8 +409,7 @@ const App: React.FC = () => {
       id: `custom-${Date.now()}`,
       name: newEngineName,
       searchUrl: newEngineUrl,
-      icon: newEngineIcon || '🔍',
-      isAI: false
+      icon: newEngineIcon || '🔍'
     };
 
     setSearchEngines([...searchEngines, newEngine]);
@@ -427,6 +423,10 @@ const App: React.FC = () => {
     }
     if (!confirm(t.deleteEngineConfirm)) return;
     setSearchEngines(prev => prev.filter(e => e.id !== id));
+    // Clearing the setting makes the search bar fall back to the first remaining engine
+    if (settings.defaultSearchEngineId === id) {
+      updateSettings('defaultSearchEngineId', '');
+    }
   };
 
   return (
@@ -458,6 +458,15 @@ const App: React.FC = () => {
 
       {/* Top Controls */}
       <div className="absolute top-6 right-6 z-40 flex items-center gap-2">
+        {/* About Button */}
+        <button
+          onClick={() => setIsAboutOpen(true)}
+          className="p-2.5 rounded-full bg-transparent hover:bg-black/5 dark:hover:bg-white/10 text-gray-400 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-200 transition-all backdrop-blur-sm"
+          title={t.about}
+        >
+          <Info size={20} strokeWidth={1.5} />
+        </button>
+
         {/* Edit Toggle - Only show if shortcuts are enabled */}
         {settings.showShortcuts && (
           <button
@@ -501,9 +510,13 @@ const App: React.FC = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="w-full anim-fade-up anim-delay-100">
+        {/* relative + z-30 keeps the engine dropdown above the shortcuts grid: the entrance
+            animation leaves a transform on this wrapper, which traps the child's z-index */}
+        <div className="w-full relative z-30 anim-fade-up anim-delay-100">
           <SearchBar
             searchEngines={searchEngines}
+            defaultEngineId={settings.defaultSearchEngineId}
+            onEngineChange={(id) => updateSettings('defaultSearchEngineId', id)}
             isEditing={isEditing}
             onAddEngineClick={handleAddEngineClick}
             onDeleteEngine={deleteEngine}
@@ -563,6 +576,7 @@ const App: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)}
         settings={settings}
         updateSettings={updateSettings}
+        searchEngines={searchEngines}
         t={t}
         onExport={handleExportData}
         onImport={handleImportData}
