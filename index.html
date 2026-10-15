@@ -5,8 +5,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>章鱼哥の主页</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <meta name="theme-color" content="#000000" />
+  <meta name="description" content="极简主义浏览器起始页 - 快捷方式、搜索与农历" />
   <script>
     (function () {
       try {
@@ -15,10 +16,12 @@
         const isDark = theme === 'dark' ||
           (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-        if (isDark) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
+        document.documentElement.classList.toggle('dark', isDark);
+        if (settings.language === 'en' || settings.language === 'zh') {
+          document.documentElement.lang = settings.language === 'zh' ? 'zh-CN' : 'en';
+        }
+        if (typeof settings.customTitle === 'string' && settings.customTitle) {
+          document.title = settings.customTitle;
         }
       } catch (e) {
         // If there's an error, do nothing and let React handle it
@@ -26,160 +29,15 @@
     })();
   </script>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
-          colors: {
-            border: "hsl(var(--border))",
-            background: "hsl(var(--background))",
-            foreground: "hsl(var(--foreground))",
-          },
-          // Removed 'blob' animations for minimalism
-        }
-      }
-    }
-  </script>
+  <!--
+    Tailwind is compiled at build time (see index.css + tailwind.config.js).
+    It used to be loaded from cdn.tailwindcss.com, which required network
+    access in production, shipped an unpurged runtime JIT compiler, and caused
+    the first-paint style flash that the loading screen below existed to hide.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --foreground-rgb: 0, 0, 0;
-    }
-
-    .dark {
-      --foreground-rgb: 255, 255, 255;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      color: rgb(var(--foreground-rgb));
-      /* Background is handled in App.tsx */
-      background-color: transparent;
-      min-height: 100vh;
-    }
-
-    /* Custom Scrollbar - Minimalist */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #e2e8f0;
-      border-radius: 99px;
-    }
-
-    .dark ::-webkit-scrollbar-thumb {
-      background: #27272a;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #cbd5e1;
-    }
-
-    .dark ::-webkit-scrollbar-thumb:hover {
-      background: #3f3f46;
-    }
-
-    /* Loading Screen */
-    #loading-screen {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #f8f9fa;
-      z-index: 9999;
-      transition: opacity 0.3s ease-out;
-    }
-
-    .dark #loading-screen {
-      background: #000;
-    }
-
-    #loading-screen.loaded {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .loader {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(0, 0, 0, 0.1);
-      border-top-color: #000;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    .dark .loader {
-      border-color: rgba(255, 255, 255, 0.1);
-      border-top-color: #fff;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    /* Entrance Animations (replaces tailwindcss-animate) */
-    @keyframes anim-enter {
-      from {
-        opacity: var(--enter-o, 0);
-        transform: var(--enter-t, none);
-      }
-      to {
-        opacity: 1;
-        transform: none;
-      }
-    }
-
-    .anim-fade {
-      --enter-o: 0;
-      animation: anim-enter 0.2s ease-out both;
-    }
-
-    .anim-zoom {
-      --enter-o: 0;
-      --enter-t: scale(0.95);
-      animation: anim-enter 0.2s ease-out both;
-    }
-
-    .anim-fade-up {
-      --enter-o: 0;
-      --enter-t: translateY(1rem);
-      animation: anim-enter 1s ease-out both;
-    }
-
-    .anim-fade-up-lg {
-      --enter-o: 0;
-      --enter-t: translateY(2rem);
-      animation: anim-enter 1s ease-out both;
-    }
-
-    .anim-fade-down {
-      --enter-o: 0;
-      --enter-t: translateY(-1rem);
-      animation: anim-enter 1s ease-out both;
-    }
-
-    .anim-delay-100 {
-      animation-delay: 0.1s;
-    }
-
-    .anim-delay-200 {
-      animation-delay: 0.2s;
-    }
-  </style>
 </head>
 
 <body>

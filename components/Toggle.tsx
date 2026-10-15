@@ -9,9 +9,9 @@ interface ToggleProps {
 }
 
 export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, icon, size = 'md' }) => {
-  const track = size === 'sm'
-    ? 'w-9 h-5 after:h-4 after:w-4'
-    : 'w-11 h-6 after:h-5 after:w-5';
+  // The <label> wrapping a visually hidden checkbox already supplies the
+  // accessible name, so no extra aria wiring is required here.
+  const track = size === 'sm' ? 'w-9 h-5 after:h-4 after:w-4' : 'w-11 h-6 after:h-5 after:w-5';
 
   return (
     <label className="flex items-center justify-between cursor-pointer group">
@@ -26,7 +26,9 @@ export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, label, icon, 
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <div className={`bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-zinc-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600 ${track}`}></div>
+        <div
+          className={`bg-gray-200 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500/60 peer-focus:outline-none rounded-full peer dark:bg-zinc-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:transition-all dark:border-zinc-600 peer-checked:bg-blue-600 ${track}`}
+        />
       </div>
     </label>
   );

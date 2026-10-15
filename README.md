@@ -93,11 +93,35 @@ export const getDefaultCategories = (language: Language = 'en'): Category[] => {
 ### 📦 技术栈
 
 - **React 19** - UI 框架
-- **TypeScript** - 类型安全
+- **TypeScript** - 类型安全（`strict` 已开启）
 - **Vite** - 构建工具
-- **Tailwind CSS** - 样式框架（通过 CDN 引入）
+- **Tailwind CSS** - 样式框架（**构建期编译**，非 CDN）
 - **Lucide React** - 图标库
-- **lunar-typescript** - 农历日期计算
+- **lunar-typescript** - 农历日期计算（按需动态加载）
+
+### 🧰 开发脚本
+
+```bash
+npm run dev         # 启动开发服务器
+npm run typecheck   # 类型检查（tsc --noEmit）
+npm run lint        # ESLint
+npm test            # 归一化层单元测试（Node 原生测试运行器）
+npm run build       # 类型检查 + 生产构建
+```
+
+`npm run build` 会**先执行类型检查**，类型错误不会进入产物。
+
+### 🚀 部署
+
+构建产物为纯静态文件。若部署到 GitHub Pages 的**项目页**
+（`https://<user>.github.io/Home-Page/`），必须指定子路径，否则
+`/assets/*` 会 404：
+
+```bash
+VITE_BASE=/Home-Page/ npm run build
+```
+
+根域名或自定义域名部署无需设置，默认 `base: '/'`。
 
 ### 📄 许可证
 
@@ -186,11 +210,35 @@ Edit `DEFAULT_SEARCH_ENGINES` in `constants.ts` to add or modify search engines.
 ### 📦 Tech Stack
 
 - **React 19** - UI Framework
-- **TypeScript** - Type Safety
+- **TypeScript** - Type Safety (`strict` enabled)
 - **Vite** - Build Tool
-- **Tailwind CSS** - Styling (via CDN)
+- **Tailwind CSS** - Styling (**compiled at build time**, not via CDN)
 - **Lucide React** - Icons
-- **lunar-typescript** - Lunar calendar calculation
+- **lunar-typescript** - Lunar calendar (lazily loaded on demand)
+
+### 🧰 Scripts
+
+```bash
+npm run dev         # Start the dev server
+npm run typecheck   # Type check (tsc --noEmit)
+npm run lint        # ESLint
+npm test            # Unit tests for the normalization layer (Node test runner)
+npm run build       # Type check + production build
+```
+
+`npm run build` runs the type check **first**, so type errors cannot ship.
+
+### 🚀 Deployment
+
+The build output is fully static. When deploying to a GitHub Pages
+**project** page (`https://<user>.github.io/Home-Page/`), you must set the
+sub-path or every `/assets/*` URL will 404:
+
+```bash
+VITE_BASE=/Home-Page/ npm run build
+```
+
+Root-domain and custom-domain deployments need no override (`base: '/'`).
 
 ### 📄 License
 

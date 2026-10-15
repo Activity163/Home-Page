@@ -1,8 +1,9 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { Search, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { SearchEngine } from '../types';
-import { TranslationType } from '../translations';
+import { useT } from '../contexts/locale-context';
+import { format } from '../translations';
 import { EngineIcon } from './EngineIcon';
 
 interface SearchBarProps {
@@ -13,10 +14,9 @@ interface SearchBarProps {
   onAddEngineClick: () => void;
   onDeleteEngine: (id: string) => void;
   openInNewTab: boolean;
-  t: TranslationType;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({ 
+const SearchBarInner: React.FC<SearchBarProps> = ({
   searchEngines,
   defaultEngineId,
   onEngineChange,
@@ -24,8 +24,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onAddEngineClick,
   onDeleteEngine,
   openInNewTab,
-  t
 }) => {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -33,8 +33,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
   // The default engine from settings wins; otherwise fall back to the first engine
   const selectedEngine = useMemo(
-    () => searchEngines.find(e => e.id === defaultEngineId) ?? searchEngines[0] ?? null,
-    [searchEngines, defaultEngineId]
+    () => searchEngines.find((e) => e.id === defaultEngineId) ?? searchEngines[0] ?? null,
+    [searchEngines, defaultEngineId],
   );
 
   // Click outside handler
@@ -48,13 +48,28 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Escape closes the dropdown without leaving the field.
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isDropdownOpen]);
+
   const performSearch = (text: string) => {
     if (!text.trim()) return;
 
-    const url = selectedEngine?.searchUrl.replace('%s', encodeURIComponent(text));
-    if (!url) return;
+    // The engine URL is validated to contain %s on the way in, but guard here
+    // too so a legacy stored value cannot silently drop the query.
+    if (!selectedEngine || !selectedEngine.searchUrl.includes('%s')) return;
+    const url = selectedEngine.searchUrl.replace('%s', encodeURIComponent(text));
     if (openInNewTab) {
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       window.location.href = url;
     }
@@ -71,37 +86,53 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     setIsDropdownOpen(false);
   };
 
+  // normalizeEngines guarantees at least one engine, but stay defensive.
   if (!selectedEngine) return null;
 
-  const placeholderText = t.searchPlaceholder.replace('%s', selectedEngine.name);
+  const placeholderText = format(t.searchPlaceholder, selectedEngine.name);
 
   return (
     <div className="w-full max-w-3xl mx-auto relative z-20">
       <form onSubmit={handleSearch} className="relative group">
-        <div className={`
+        <div
+          className={`
           flex items-center bg-white dark:bg-zinc-900 shadow-lg dark:shadow-black/40 border border-transparent dark:border-zinc-800
           transition-all duration-300 rounded-full
           focus-within:shadow-xl focus-within:border-blue-400 dark:focus-within:border-blue-600
-        `}>
+        `}
+        >
           {/* Engine Selector */}
           <div className="relative" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              aria-haspopup="listbox"
+              aria-expanded={isDropdownOpen}
+              aria-label={`${t.defaultSearchEngine}: ${selectedEngine.name}`}
               className="flex items-center gap-1 sm:gap-2 pl-3 sm:pl-5 pr-2 sm:pr-3 py-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors border-r border-gray-100 dark:border-zinc-800 justify-center"
             >
               <div className="flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6">
                 <EngineIcon icon={selectedEngine.icon} className="w-5 h-5 sm:w-6 sm:h-6 text-lg sm:text-xl" />
               </div>
-              <ChevronDown size={14} className={`hidden sm:block text-gray-400 dark:text-zinc-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                size={14}
+                aria-hidden="true"
+                className={`hidden sm:block text-gray-400 dark:text-zinc-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-3 w-64 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 overflow-hidden py-2 anim-zoom origin-top-left z-30">
+              <div
+                role="listbox"
+                aria-label={t.defaultSearchEngine}
+                className="absolute top-full left-0 mt-3 w-64 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 overflow-hidden py-2 anim-zoom origin-top-left z-30"
+              >
                 <div className="max-h-80 overflow-y-auto custom-scrollbar">
                   {searchEngines.map((engine) => (
-                    <div 
+                    <div
                       key={engine.id}
+                      role="option"
+                      aria-selected={selectedEngine.id === engine.id}
                       className={`flex items-center justify-between px-5 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group/item
                         ${selectedEngine.id === engine.id ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}
                       `}
@@ -111,21 +142,23 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                         <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center text-gray-700 dark:text-gray-200">
                           <EngineIcon icon={engine.icon} className="w-5 h-5 text-lg" />
                         </div>
-                        <span className={`text-sm truncate ${selectedEngine.id === engine.id ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-zinc-300'}`}>
+                        <span
+                          className={`text-sm truncate ${selectedEngine.id === engine.id ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-zinc-300'}`}
+                        >
                           {engine.name}
                         </span>
                       </div>
-                      
+
                       {isEditing && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onDeleteEngine(engine.id);
                           }}
-                          className="text-gray-300 hover:text-red-500 p-1 opacity-0 group-hover/item:opacity-100 transition-all"
-                          title="Remove Engine"
+                          aria-label={format(t.removeEngine, engine.name)}
+                          className="text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover/item:opacity-100 focus-visible:opacity-100 transition-all"
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={14} aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -142,7 +175,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                     className="w-full text-left px-5 py-3 text-sm flex items-center gap-3 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-zinc-800/50 border-t border-gray-100 dark:border-zinc-800 transition-colors"
                   >
                     <div className="w-6 h-6 flex items-center justify-center">
-                      <Plus size={16} />
+                      <Plus size={16} aria-hidden="true" />
                     </div>
                     {t.addSearchEngine}
                   </button>
@@ -157,20 +190,23 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={placeholderText}
-            className="flex-1 px-3 sm:px-4 py-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-zinc-600 text-base sm:text-lg"
-            autoFocus
+            aria-label={placeholderText}
+            className="flex-1 px-3 sm:px-4 py-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 text-base sm:text-lg"
             autoComplete="off"
           />
 
           {/* Action Button */}
           <button
             type="submit"
-            className="pr-4 sm:pr-6 pl-3 sm:pl-4 text-gray-400 dark:text-zinc-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+            aria-label={placeholderText}
+            className="pr-4 sm:pr-6 pl-3 sm:pl-4 text-gray-500 dark:text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
           >
-            <Search size={20} />
+            <Search size={20} aria-hidden="true" />
           </button>
         </div>
       </form>
     </div>
   );
 };
+
+export const SearchBar = memo(SearchBarInner);
